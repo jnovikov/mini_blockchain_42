@@ -1,3 +1,4 @@
+import json
 from hashlib import sha512
 from crypto import validate_signature, PublicKey
 
@@ -19,8 +20,21 @@ class Transaction(object):
         ok = sha512(str(self.public_key).encode()).hexdigest() == self.from_addr
         return ok and validate_signature(pc.e, pc.n, self.get_message(), self.sign)
 
+    def to_dict(self):
+        return {
+            'from': self.from_addr,
+            'to': self.to_addr,
+            'amount': self.amount,
+            'sign': self.sign,
+            'public_key': self.public_key,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data['from'], data['to'], data['amount'], data['sign'], data['public_key'])
+
     def __str__(self):
-        return self.get_message() + ";{};{}".format(self.sign, self.public_key)
+        return json.dumps(self.to_dict())
 
     def hash(self):
         return sha512(str(self).encode()).hexdigest()
@@ -51,12 +65,19 @@ class Block(object):
         return {
             'id': self.id,
             'date': self.date,
-            'transactions': [str(x) for x in self.transactions],
+            'transactions': [x.to_dict() for x in self.transactions],
             'nonce': self.nonce,
             'hash': self.hash
-
         }
 
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            data['id'],
+            data['date'],
+            [Transaction.from_dict(x) for x in data['transactions']],
+            data['nonce']
+        )
 
 
 class BlockChain(object):
@@ -92,3 +113,4 @@ class BlockChain(object):
         return {
             'blocks': [x.to_dict() for x in self.blocks]
         }
+
