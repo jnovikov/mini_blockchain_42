@@ -16,16 +16,79 @@ class Transaction(object):
     def validate(self):
         pc = PublicKey.loads(self.public_key)
 
-        ok = sha512(str(self.public_key)).hexdigest() == self.from_addr
+        ok = sha512(str(self.public_key).encode()).hexdigest() == self.from_addr
         return ok and validate_signature(pc.e, pc.n, self.get_message(), self.sign)
+
+    def __str__(self):
+        return self.get_message() + ";{};{}".format(self.sign, self.public_key)
+
+    def hash(self):
+        return sha512(str(self).encode()).hexdigest()
 
 
 class Block(object):
-    def __init__(self, transactions):
+    def __init__(self, block_id, date, transactions, nonce):
+        self.id = block_id
+        self.date = date
         self.transactions = transactions
+        self.nonce = nonce
+        self.hash = ''
 
-    def hash(self):
+    def transactions_hash(self):
         result = sha512()
         for transaction in self.transactions:
-            result.update(transaction.hash())
+            result.update(transaction.hash().encode())
         return result.hexdigest()
+
+    def get_hash(self, previous_hash: str):
+        result = sha512()
+        result.update(previous_hash.encode())
+        result.update(self.transactions_hash().encode())
+        result.update(self.nonce)
+        return result.hexdigest()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'date': self.date,
+            'transactions': [str(x) for x in self.transactions],
+            'nonce': self.nonce,
+            'hash': self.hash
+
+        }
+
+
+
+class BlockChain(object):
+    def __init__(self, blocks):
+        self.blocks = blocks
+
+    @property
+    def last_block(self):
+        return self.blocks[-1]
+
+    def add_block(self, block: Block):
+        new_block_hash = block.get_hash(self.last_block.hash)
+        if BlockChain.challenge(new_block_hash):
+            block.hash = new_block_hash
+            self.blocks.append(block)
+            return True
+        return False
+
+    @staticmethod
+    def challenge(block_hash: str):
+        return block_hash.startswith('0' * 4)
+
+    def validate(self):
+        for x in range(1, len(self.blocks)):
+            block = self.blocks[x]
+            prev_block = self.blocks[x - 1]
+            # validate transactions
+            if not (block.get_hash(prev_block.hash) == block.hash and BlockChain.challenge(block.hash)):
+                return False
+            return True
+
+    def to_dict(self):
+        return {
+            'blocks': [x.to_dict() for x in self.blocks]
+        }
