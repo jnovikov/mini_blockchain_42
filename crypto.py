@@ -47,4 +47,4 @@ class PrivateKey(CryptoKey):
         self.n = n
 
     def dumps(self):
-        self._dumps(self.d, self.n)
+        return self._dumps(self.d, self.n)

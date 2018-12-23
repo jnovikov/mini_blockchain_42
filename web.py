@@ -16,6 +16,11 @@ def index():
     return jsonify(blockchain.to_dict())
 
 
+@app.route('/last_block')
+def get_last_block():
+    return jsonify(blockchain.last_block.to_dict())
+
+
 @app.route('/add_transaction', methods=["POST"])
 def add_transaction():
     data = request.json
@@ -29,13 +34,16 @@ def get_transactions():
     return jsonify([x.to_dict() for x in transaction_pool])
 
 
-@app.route('/add_block')
+@app.route('/add_block',methods=["POST"])
 def add_block():
     data = request.json
     block = Block.from_dict(data)
+    print("New block", block)
     if blockchain.add_block(block):
+        print("YES")
         return "New block added"
     else:
+        print("NO")
         return "NOPE"
 
 

@@ -58,7 +58,7 @@ class Block(object):
         result = sha512()
         result.update(previous_hash.encode())
         result.update(self.transactions_hash().encode())
-        result.update(self.nonce)
+        result.update(str(self.nonce).encode())
         return result.hexdigest()
 
     def to_dict(self):
@@ -90,6 +90,7 @@ class BlockChain(object):
 
     def add_block(self, block: Block):
         new_block_hash = block.get_hash(self.last_block.hash)
+        #TODO: Validate all transcations!
         if BlockChain.challenge(new_block_hash):
             block.hash = new_block_hash
             self.blocks.append(block)
@@ -104,7 +105,7 @@ class BlockChain(object):
         for x in range(1, len(self.blocks)):
             block = self.blocks[x]
             prev_block = self.blocks[x - 1]
-            # validate transactions
+            #TODO: validate transactions
             if not (block.get_hash(prev_block.hash) == block.hash and BlockChain.challenge(block.hash)):
                 return False
             return True

@@ -1,6 +1,6 @@
 import requests
-
-from block import Transaction
+from datetime import datetime
+from block import Transaction, Block
 from crypto import PublicKey, PrivateKey, sign_message
 
 b_url = 'http://localhost:5002'
@@ -26,8 +26,26 @@ def add_transaction(to, amount):
 
 def get_transactions():
     r = requests.get(b_url + '/transaction_pool')
-    print(r.json())
+    return r.json()
+
+def get_last_block():
+    r = requests.get(b_url + '/last_block')
+    return r.json()
+
+
+def add_block():
+    t = get_transactions()
+    t = [Transaction.from_dict(x) for x in t]
+    last = get_last_block()
+    b = Block(last['id'] + 1,str(datetime.now()),t,0)
+    for nonce in range(0,1000000):
+        b.nonce = nonce
+        block_hash = b.get_hash(last['hash'])
+        if block_hash.startswith('0' * 4):
+            r = requests.post(b_url + '/add_block',json=b.to_dict())
+            print(r, r.text)
 
 
 add_transaction('ttttttttt', 1)
-get_transactions()
+# get_transactions()
+add_block()
